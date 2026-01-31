@@ -1,0 +1,254 @@
+<!-- settings.html (UPDATED: premium dashboard style, removed System State + Tools Moderation + removed tips) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings – GotTools Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Fade BEFORE CSS loads (fail-closed; reveal after guard success) -->
+  <style>
+    html{visibility:hidden;}
+    html, body { background:#0b1220; margin:0; padding:0; }
+    body{ opacity:0; }
+    body.fade-in{ opacity:1; transition: opacity 0.25s ease-in; }
+  </style>
+
+  <script>
+    document.documentElement.style.visibility = "visible";
+  </script>
+
+  <!-- ✅ use same premium css as dashboard -->
+  <link rel="stylesheet" href="css/dashboard.css">
+
+  <!-- page-only: small input styling to match premium -->
+  <style>
+    .input{
+      height:44px;
+      padding: 0 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.92);
+      font-weight: 800;
+      font-size: 13px;
+      color: rgba(15,23,42,.92);
+      outline: none;
+    }
+    .row{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .label{
+      font-weight: 950;
+      font-size: 12px;
+      color: rgba(51,65,85,.95);
+      letter-spacing: .02em;
+    }
+    .check{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      font-weight: 800;
+      color: rgba(15,23,42,.90);
+      margin-top: 10px;
+    }
+    .check input{ transform: translateY(1px); }
+    .grid { 
+  display: grid; 
+  gap: 14px;           
+}
+.grid-cols-2 { 
+  grid-template-columns: repeat(2, minmax(0, 1fr)); 
+}
+
+  </style>
+</head>
+
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR (same as dashboard) -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">
+        <div class="brand-mark">
+          <img src="img/logo.png" alt="GotTools Logo">
+        </div>
+        <div class="brand-text">
+          <h1>GotTools? Admin</h1>
+        </div>
+      </div>
+
+      <div class="sidebar-mini">
+        <div class="mini-row">
+          <div class="mini-avatar" style="background-image:url('img/profile.png');"></div>
+          <div class="mini-info">
+            <strong id="adminNameTop">Admin</strong>
+            <span id="adminRoleTop">Admin</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Sidebar Navigation">
+      <a href="dashboard.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-dashboard.png" alt="">
+        <span>Dashboard</span>
+      </a>
+
+      <a href="reports.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-reports.png" alt="">
+        <span>Reports</span>
+      </a>
+
+      <a href="users.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-users.png" alt="">
+        <span>Users</span>
+      </a>
+
+      <a href="tools.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-tools.png" alt="">
+        <span>Tools / Listings</span>
+      </a>
+
+      <a href="settings.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-settings.png" alt="">
+        <span>Settings</span>
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <a href="#" class="sidebar-link danger" id="btnLogout">
+        <img class="nav-ico" src="img/icons/nav-logout.png" alt="">
+        <span>Log Out</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>GotTools? Admin Panel</p>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Open sidebar">
+          <img src="img/icons/nav-menu.png" alt="">
+        </button>
+
+        <div class="topbar-title">
+          <p class="welcome">Welcome back, <span class="highlight" id="adminWelcomeName">Admin</span></p>
+          <h2>Settings</h2>
+        </div>
+      </div>
+
+     
+    </header>
+
+    <!-- PAGE TITLE -->
+    <section class="page-title" style="margin-top: 2px;">
+      <h2><span class="title-highlight">Settings:</span> Admin Controls</h2>
+    </section>
+
+    <!-- SETTINGS GRID -->
+<section class="grid grid-cols-2" style="margin-top: 10px; gap: 10px;">
+
+      <!-- Admin Profile -->
+      <article class="card">
+        <div class="card-header">
+          <div>
+            <h3>Admin Profile</h3>
+            <small>Account information</small>
+          </div>
+          <span id="saveStatus" class="card-pill" style="min-width:88px; text-align:center;">Loading…</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:14px;">
+          <img src="img/profile.png" alt="" style="width:64px; height:64px; border-radius:50%; object-fit:cover;">
+          <div style="min-width:0;">
+            <p style="margin:0 0 6px;"><strong>Name:</strong> <span id="profileName">-</span></p>
+            <p style="margin:0 0 6px;"><strong>Role:</strong> <span id="profileRole">-</span></p>
+            <p style="margin:0;"><strong>Email:</strong> <span id="profileEmail">-</span></p>
+          </div>
+        </div>
+      </article>
+
+      <!-- Reports & Disputes -->
+      <article class="card">
+        <div class="card-header">
+          <div>
+            <h3>Reports & Disputes</h3>
+            <small>Resolution and assignment</small>
+          </div>
+          <span class="card-pill">Policy</span>
+        </div>
+
+        <div class="row">
+          <div class="label">Who can resolve reports?</div>
+          <select id="settingReportResolvePolicy" class="input" style="width:100%;">
+            <option value="admins_allowed">Admins Allowed</option>
+            <option value="super_admin_only">Super Admin Only</option>
+          </select>
+        </div>
+
+        <label class="check">
+          <input id="settingReportAssignmentEnabled" type="checkbox">
+          Enable report assignment
+        </label>
+      </article>
+
+      <!-- User Moderation -->
+      <article class="card">
+        <div class="card-header">
+          <div>
+            <h3>User Moderation</h3>
+            <small>Suspension and audit</small>
+          </div>
+          <span class="card-pill">Users</span>
+        </div>
+
+        <div class="row">
+          <div class="label">Who can ban/suspend users?</div>
+          <select id="settingUserBanPolicy" class="input" style="width:100%;">
+            <option value="admins_allowed">Admins Allowed</option>
+            <option value="super_admin_only">Super Admin Only</option>
+          </select>
+        </div>
+
+        <label class="check">
+          <input id="settingAuditLogEnabled" type="checkbox">
+          Enable audit log
+        </label>
+      </article>
+
+    </section>
+
+  </main>
+</div>
+
+<!-- BASE UI JS (NO fade-in here) -->
+<script>
+  function toggleSidebar() {
+    document.querySelector(".sidebar").classList.toggle("show");
+    document.querySelector(".sidebar-overlay").classList.toggle("active");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const currentPage = location.pathname.split("/").pop().split("?")[0];
+    document.querySelectorAll(".sidebar-link").forEach(link => {
+      if (link.getAttribute("href") === currentPage) link.classList.add("active");
+    });
+  });
+</script>
+
+<!-- ✅ SUPER ADMIN ONLY: Settings logic -->
+<script type="module" src="./js/settings-page.js"></script>
+</body>
+</html>

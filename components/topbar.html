@@ -1,0 +1,83 @@
+<header class="topbar">
+
+    <div class="topbar-title">
+        <p>Welcome Back, <span class="highlight">Muhammad!</span></p>
+        <h1>Admin Dashboard</h1>
+    </div>
+
+    <div class="topbar-right">
+
+        <!-- Hamburger -->
+        <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+
+        <!-- Search -->
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="adminSearch" placeholder="Search...">
+            <span class="clear-icon" onclick="document.getElementById('adminSearch').value=''">✕</span>
+        </div>
+
+        <!-- Notification Button -->
+        <button class="topbar-icon-btn notification">🔔</button>
+
+        <!-- Notification Panel -->
+        <div class="notification-panel" id="notificationPanel">
+
+            <div class="notif-header">
+                <span class="notif-title">Notifications</span>
+            </div>
+
+            <div class="notif-list">
+
+                <div class="notif-item">
+                    <img src="img/profile.jpg" class="notif-avatar">
+                    <div class="notif-info">
+                        <p class="notif-name">New Damage Report</p>
+                        <p class="notif-msg">Ali R. submitted a report for “Electric Drill”.</p>
+                    </div>
+                    <span class="notif-time">3 mins ago</span>
+                </div>
+
+                <div class="notif-item">
+                    <img src="img/profile.jpg" class="notif-avatar">
+                    <div class="notif-info">
+                        <p class="notif-name">New User Joined</p>
+                        <p class="notif-msg">A new member registered: Farah S.</p>
+                    </div>
+                    <span class="notif-time">10 mins ago</span>
+                </div>
+
+                <div class="notif-item">
+                    <img src="img/profile.jpg" class="notif-avatar">
+                    <div class="notif-info">
+                        <p class="notif-name">Rental Completed</p>
+                        <p class="notif-msg">Pressure Washer returned by Hanis.</p>
+                    </div>
+                    <span class="notif-time">30 mins ago</span>
+                </div>
+
+                <div class="notif-item muted">
+                    <img src="img/profile.jpg" class="notif-avatar">
+                    <div class="notif-info">
+                        <p class="notif-name">Dispute Pending</p>
+                        <p class="notif-msg">Late return case requires admin review.</p>
+                    </div>
+                    <span class="notif-time">1 hr ago</span>
+                </div>
+
+                <a class="notif-footer" href="#">View all notifications</a>
+            </div>
+        </div>
+
+        <!-- Admin Profile -->
+        <div class="admin-pill">
+            <div class="admin-avatar"></div>
+            <div class="admin-info">
+                <strong>Muhammad</strong>
+                <span class="admin-role">Super Admin</span>
+            </div>
+        </div>
+
+    </div>
+
+</header>
