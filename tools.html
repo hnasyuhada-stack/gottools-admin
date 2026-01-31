@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tools / Listings – GotTools Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    html{visibility:hidden;}
+    html, body { background:#0b1220; margin:0; padding:0; }
+    body { opacity:0; }
+    body.fade-in { opacity:1; transition: opacity .25s ease-in; }
+  </style>
+
+  <link rel="stylesheet" href="css/dashboard.css">
+
+  <script>
+    document.documentElement.style.visibility = "visible";
+  </script>
+
+  <style>
+    .table-tool{ display:flex; align-items:center; gap:12px; min-width:260px; }
+    .tool-thumb{
+      width:44px; height:44px; border-radius:14px; object-fit:cover; flex:0 0 auto;
+      box-shadow: 0 14px 28px rgba(15,23,42,.14);
+      background:#f3f4f6; border: 1px solid rgba(15,23,42,.10);
+    }
+    .tool-meta{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
+    .tool-name{
+      font-weight:900; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      max-width:360px; color: rgba(15,23,42,.92);
+    }
+    .tool-sub{
+      font-size:12px; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      max-width:360px; color: rgba(100,116,139,.92); font-weight:700;
+    }
+
+    .btn-ghost-small{
+      height:38px; padding:0 12px; border-radius:14px;
+      border:1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.96);
+      color: rgba(15,23,42,.92);
+      cursor:pointer; transition:.18s ease;
+      font-weight:900; letter-spacing:.2px;
+      display:inline-flex; align-items:center; gap:10px; white-space:nowrap;
+    }
+    .btn-ghost-small:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(15,23,42,.12);
+      border-color: rgba(255,138,61,.35);
+    }
+
+    .btn-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    /* ✅ Select styling */
+    .gt-select{
+      height:44px; padding:0 14px; border-radius:14px;
+      border:1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.96);
+      color: rgba(15,23,42,.92);
+      font-weight:900; letter-spacing:.2px;
+      outline:none; cursor:pointer; transition:.18s ease;
+      box-shadow: 0 14px 28px rgba(15,23,42,.06);
+    }
+    .gt-select:focus{
+      border-color: rgba(255,138,61,.45);
+      box-shadow: 0 14px 28px rgba(255,138,61,.10);
+    }
+
+    .actions-stack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .btn-table{
+      height:32px; padding:0 12px; border-radius:999px;
+      font-size:12px; font-weight:900;
+      cursor:pointer; transition:.18s ease;
+      font-family: inherit; white-space:nowrap;
+    }
+    .btn-outline{
+      border:1px solid rgba(255,138,61,.40);
+      background: rgba(255,138,61,.12);
+      color:#7c2d12;
+    }
+    .btn-outline:hover{
+      background: rgba(255,138,61,.18);
+      border-color: rgba(255,138,61,.60);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 20px rgba(15,23,42,.10);
+    }
+
+    .badge{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:6px 10px; border-radius:999px;
+      font-size:12px; font-weight:900; line-height:1;
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(248,250,252,.95);
+      color: rgba(15,23,42,.85);
+      white-space:nowrap;
+    }
+    .badge-muted{ background:#f2f4f7; color:#344054; border:1px solid rgba(52,64,84,0.10); }
+    .badge-danger{ background:#ffe4e7; color:#b42318; border:1px solid rgba(180,35,24,0.14); }
+    .badge-warn{ background:#fff6d6; color:#7a5c00; border:1px solid rgba(122,92,0,0.14); }
+    .badge-ok{ background:#dcfce7; color:#166534; border:1px solid rgba(22,101,52,0.14); }
+
+    tr.row-highlight {
+      outline: 2px solid rgba(255, 77, 77, 0.55);
+      outline-offset: -2px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(255,77,77,0.12);
+    }
+
+    /* ------------------------------------------- */
+    /* ✨ PREMIUM LISTING TYPE CARD STYLES ✨ */
+    /* ------------------------------------------- */
+    .listing-types-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 15px;
+      width: 100%;
+    }
+
+    .type-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 4px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid rgba(15,23,42,0.06);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .type-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(15,23,42,0.08);
+    }
+
+    /* Color Variants */
+    .type-rent {
+      background: linear-gradient(145deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.12) 100%);
+      border-color: rgba(59, 130, 246, 0.25);
+      color: #1d4ed8;
+    }
+    .type-sell {
+      background: linear-gradient(145deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.12) 100%);
+      border-color: rgba(34, 197, 94, 0.25);
+      color: #15803d;
+    }
+    .type-free {
+      background: linear-gradient(145deg, rgba(168, 85, 247, 0.05) 0%, rgba(168, 85, 247, 0.12) 100%);
+      border-color: rgba(168, 85, 247, 0.25);
+      color: #7e22ce;
+    }
+
+    .type-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .type-count {
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 980px){
+      .btn-ghost-small{ width:100%; justify-content:center; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">
+        <div class="brand-mark">
+          <img src="img/logo.png" alt="GotTools Logo">
+        </div>
+        <div class="brand-text">
+          <h1>GotTools? Admin</h1>
+        </div>
+      </div>
+
+      <div class="sidebar-mini">
+        <div class="mini-row">
+          <div class="mini-avatar" style="background-image:url('img/profile.png');"></div>
+          <div class="mini-info">
+            <strong id="adminNameTop">Admin</strong>
+            <span id="adminRoleTop">Admin</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Sidebar Navigation">
+      <a href="dashboard.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-dashboard.png" alt="">
+        <span>Dashboard</span>
+      </a>
+
+      <a href="reports.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-reports.png" alt="">
+        <span>Reports</span>
+      </a>
+
+      <a href="users.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-users.png" alt="">
+        <span>Users</span>
+      </a>
+
+      <a href="tools.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-tools.png" alt="">
+        <span>Tools / Listings</span>
+      </a>
+
+      <a href="settings.html" class="sidebar-link">
+        <img class="nav-ico" src="img/icons/nav-settings.png" alt="">
+        <span>Settings</span>
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <a href="#" class="sidebar-link danger" id="btnLogout">
+        <img class="nav-ico" src="img/icons/nav-logout.png" alt="">
+        <span>Log Out</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>GotTools? Admin Panel</p>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <main class="main">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Open sidebar">
+          <img src="img/icons/nav-menu.png" alt="">
+        </button>
+
+        <div class="topbar-title">
+          <p class="welcome">Welcome back, <span class="highlight" id="adminWelcomeName">Admin</span></p>
+          <h2>Tools / Listings</h2>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="search-container">
+          <img class="search-ico" src="img/icons/nav-search.png" alt="">
+          <input id="toolSearchInput" type="text" placeholder="Search tools..."
+                 oninput="window.gtApplyFilters && window.gtApplyFilters()">
+
+          <button class="clear-btn" type="button"
+            onclick="
+              const el=document.getElementById('toolSearchInput');
+              el.value='';
+              el.dispatchEvent(new Event('input'));
+              window.gtApplyFilters && window.gtApplyFilters();
+            ">
+            <img src="img/icons/nav-close.png" alt="">
+          </button>
+        </div>
+
+      
+      </div>
+    </header>
+
+    <section class="page-title">
+      <div>
+        <h2>Manage Tools & Listings</h2>
+        <div class="sub">Monitor tools posted by the community</div>
+      </div>
+    </section>
+
+    <section class="metric-grid" style="margin-top:12px; margin-bottom:12px;">
+      <article class="metric-card">
+        <div class="metric-head">
+          <p class="metric-title">Total Listings</p>
+          <span class="metric-chip">All</span>
+        </div>
+        <p class="metric-value" id="mTotalTools">0</p>
+        <p class="metric-sub">All listings in Firestore</p>
+      </article>
+
+      <article class="metric-card">
+        <div class="metric-head">
+          <p class="metric-title">Visible</p>
+          <span class="metric-chip ok">Visible</span>
+        </div>
+        <p class="metric-value" id="mVisibleTools">0</p>
+        <p class="metric-sub">Shown to users</p>
+      </article>
+
+      <article class="metric-card warn">
+        <div class="metric-head">
+          <p class="metric-title">Hidden</p>
+          <span class="metric-chip danger">Hidden</span>
+        </div>
+        <p class="metric-value" id="mHiddenTools">0</p>
+        <p class="metric-sub">Hidden via Reports action</p>
+      </article>
+
+    </section>
+
+    <section class="filters-bar" style="margin-top:8px; margin-bottom:10px;">
+      <div class="filters-row" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+
+        <select id="filterVisibility" class="gt-select" style="flex:1; min-width:200px;"
+                onchange="window.gtApplyFilters && window.gtApplyFilters()">
+          <option value="all">All Visibility</option>
+          <option value="visible">Visible</option>
+          <option value="hidden">Hidden</option>
+        </select>
+
+        <select id="filterStatus" class="gt-select" style="flex:1; min-width:200px;"
+                onchange="window.gtApplyFilters && window.gtApplyFilters()">
+          <option value="all">All Status</option>
+          <option value="available">Available</option>
+          <option value="booked">Booked</option>
+          <option value="ongoing">Ongoing</option>
+          <option value="reported">Reported</option>
+        </select>
+
+        <button id="btnClearFilters" class="btn-ghost-small" type="button"
+                onclick="window.gtClearToolFilters && window.gtClearToolFilters()">
+          Clear
+        </button>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:10px;">
+      <div class="card-header">
+        <div>
+          <h3>All Tools / Listings</h3>
+          <small>Manage visibility, review reports and open tool details</small>
+          <div class="subtle-row">
+            <span id="lblShowing">Showing 0 of 0</span>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button id="btnRefresh" class="btn-ghost-small" type="button">Refresh</button>
+          <button id="btnExportCsv" class="btn-ghost-small" type="button">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Owner</th>
+              <th>Category</th>
+              <th>Listing Type</th>
+              <th>Status</th>
+              <th>Date Added</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody id="toolsTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  function toggleSidebar() {
+    document.querySelector(".sidebar").classList.toggle("show");
+    document.querySelector(".sidebar-overlay").classList.toggle("active");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const notifBtn = document.querySelector(".notification");
+    const notifPanel = document.getElementById("notificationPanel");
+
+    if (notifBtn && notifPanel) {
+      notifBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        notifPanel.style.display =
+          notifPanel.style.display === "block" ? "none" : "block";
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!notifPanel.contains(e.target) && !notifBtn.contains(e.target)) {
+          notifPanel.style.display = "none";
+        }
+      });
+    }
+
+    const currentPage = location.pathname.split("/").pop().split("?")[0];
+    document.querySelectorAll(".sidebar-link").forEach(link => {
+      if (link.getAttribute("href") === currentPage) link.classList.add("active");
+    });
+  });
+</script>
+
+<script type="module" src="./js/tools-page.js"></script>
+<script type="module" src="./js/tools.js"></script>
+
+</body>
+</html>
