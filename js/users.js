@@ -1,4 +1,4 @@
-// js/users.js (UPDATED: Warnings + duration (suspendedUntil/banUntil) + support email display)
+// js/users.js (FULL CODE – FIXED: permissions + stamping + duration + support email + ARIA modal focus)
 import { db } from "./firebase-config.js";
 
 import {
@@ -178,6 +178,7 @@ function computeUntilFromDuration(durationKey) {
    Settings + policy
    ========================= */
 async function loadSettingsSafe() {
+  // users-page.js might have put settings here
   if (window.GT_SETTINGS) return window.GT_SETTINGS;
 
   try {
@@ -219,9 +220,11 @@ async function writeAuditIfEnabled(settings, payload) {
 }
 
 /* =========================
-   Modal helpers (Users)
+   Modal helpers (Users) + ARIA focus fix
    ========================= */
 function $(id){ return document.getElementById(id); }
+
+let GT_LAST_FOCUS = null;
 
 function formatDate(ts){
   const d = ts?.toDate ? ts.toDate() : (ts instanceof Date ? ts : null);
@@ -243,34 +246,54 @@ function ensureModalWiredOnce(){
   if (backdrop.dataset.wired === "1") return;
   backdrop.dataset.wired = "1";
 
-  const close = () => closeModal();
-
-  closeBtn.addEventListener("click", close);
+  closeBtn.addEventListener("click", () => closeModal());
 
   backdrop.addEventListener("click", (e) => {
-    if (e.target === backdrop) close();
+    if (e.target === backdrop) closeModal();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") close();
+    if (e.key === "Escape") closeModal();
   });
 }
 
 function openModal({ title, sub, bodyHtml, footerHtml }){
   ensureModalWiredOnce();
+
+  GT_LAST_FOCUS = document.activeElement;
+
   $("gtModalTitle").textContent = title || "Action";
   $("gtModalSub").textContent = sub || "";
   $("gtModalBody").innerHTML = bodyHtml || "";
   $("gtModalFooter").innerHTML = footerHtml || "";
-  $("gtModalBackdrop").classList.add("show");
-  $("gtModalBackdrop").setAttribute("aria-hidden", "false");
+
+  const b = $("gtModalBackdrop");
+  b.classList.add("show");
+  b.setAttribute("aria-hidden", "false");
+  b.removeAttribute("inert");
+
+  // focus first button to avoid aria-hidden warning
+  const firstBtn = b.querySelector("button");
+  if (firstBtn) firstBtn.focus();
 }
 
 function closeModal(){
   const b = $("gtModalBackdrop");
   if (!b) return;
+
+  // blur if focus is inside modal before hiding
+  if (b.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+
   b.classList.remove("show");
   b.setAttribute("aria-hidden", "true");
+  b.setAttribute("inert", "");
+
+  if (GT_LAST_FOCUS?.focus) {
+    GT_LAST_FOCUS.focus();
+  }
+  GT_LAST_FOCUS = null;
 }
 
 /* =========================
@@ -295,6 +318,7 @@ async function applyWarning(userId, admin, settings, { severity = "minor", reaso
     lastWarningReason: reason || "",
     lastAdminAction: "warn",
     lastAdminActionAt: serverTimestamp(),
+    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
     reputationScore: nextScore,
     badgeLevel: nextBadge,
     updatedAt: serverTimestamp()
@@ -305,8 +329,16 @@ async function applyWarning(userId, admin, settings, { severity = "minor", reaso
     target: { userId },
     severity,
     penalty,
-    before: { warningCount: prevWarnings, reputationScore: prevScore, badgeLevel: cur.badgeLevel || "bronze" },
-    after: { warningCount: prevWarnings + 1, reputationScore: nextScore, badgeLevel: nextBadge },
+    before: {
+      warningCount: prevWarnings,
+      reputationScore: prevScore,
+      badgeLevel: cur.badgeLevel || "bronze"
+    },
+    after: {
+      warningCount: prevWarnings + 1,
+      reputationScore: nextScore,
+      badgeLevel: nextBadge
+    },
     reason,
     actor: { uid: admin.uid, name: admin.name || "Admin", role: admin.role || "admin" }
   });
@@ -324,12 +356,11 @@ async function suspendUser(userId, admin, reason, settings, suspendedUntilDate =
     suspendedAt: serverTimestamp(),
     suspendedBy: admin.uid,
     suspendReason: reason || "Suspended by admin",
-
-    // ✅ NEW
-    suspendedUntil: suspendedUntilDate ? suspendedUntilDate : null,
+    suspendedUntil: suspendedUntilDate ? suspendedUntilDate : null, // ✅ duration support
 
     lastAdminAction: "suspend",
     lastAdminActionAt: serverTimestamp(),
+    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
     updatedAt: serverTimestamp()
   });
 
@@ -350,10 +381,12 @@ async function activateUser(userId, admin, settings) {
     status: "active",
     accountStatus: "active",
     suspendedAt: null,
-    suspendedUntil: null,   // ✅ NEW
+    suspendedUntil: null,
     suspendReason: "",
+
     lastAdminAction: "activate",
     lastAdminActionAt: serverTimestamp(),
+    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
     updatedAt: serverTimestamp()
   });
 
@@ -374,12 +407,11 @@ async function banUser(userId, admin, settings, reason) {
     bannedAt: serverTimestamp(),
     bannedBy: admin.uid,
     banReason: reason || "Major violation",
-
-    // ✅ optional: keep as permanent unless you add ban duration UI later
-    banUntil: null,
+    banUntil: null, // (keep permanent unless you add duration UI)
 
     lastAdminAction: "ban",
     lastAdminActionAt: serverTimestamp(),
+    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
     updatedAt: serverTimestamp()
   });
 
@@ -399,10 +431,12 @@ async function unbanUser(userId, admin, settings) {
     accountStatus: "active",
     isSuspended: false,
     bannedAt: null,
-    banUntil: null,        // ✅ NEW
+    banUntil: null,
     banReason: "",
+
     lastAdminAction: "unban",
     lastAdminActionAt: serverTimestamp(),
+    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
     updatedAt: serverTimestamp()
   });
 
@@ -413,6 +447,9 @@ async function unbanUser(userId, admin, settings) {
   });
 }
 
+/* =========================
+   Render table + actions
+   ========================= */
 function renderUsersTable(users, admin, settings) {
   const tbody = document.getElementById("usersTbody");
   if (!tbody) return;
@@ -740,6 +777,7 @@ function renderUsersTable(users, admin, settings) {
     });
 
     $("gtConfirmCancel").addEventListener("click", closeModal);
+
     $("gtConfirmOk").addEventListener("click", async () => {
       try {
         await onConfirm?.();
