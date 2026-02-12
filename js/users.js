@@ -377,16 +377,27 @@ async function activateUser(userId, admin, settings) {
   const ref = doc(db, "users", userId);
 
   await updateDoc(ref, {
+    // restore account
     isSuspended: false,
     status: "active",
     accountStatus: "active",
+
+    // clear suspension info
     suspendedAt: null,
     suspendedUntil: null,
+    suspendedBy: null,
     suspendReason: "",
 
+    // OPTIONAL: clear ban info too if you treat Activate as “restore”
+    bannedAt: null,
+    banUntil: null,
+    bannedBy: null,
+    banReason: "",
+
+    // stamping (REQUIRED)
     lastAdminAction: "activate",
     lastAdminActionAt: serverTimestamp(),
-    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
+    lastAdminActionBy: admin.uid,
     updatedAt: serverTimestamp()
   });
 
@@ -396,6 +407,7 @@ async function activateUser(userId, admin, settings) {
     actor: { uid: admin.uid, name: admin.name || "Admin", role: admin.role || "admin" }
   });
 }
+
 
 async function banUser(userId, admin, settings, reason) {
   const ref = doc(db, "users", userId);
@@ -965,3 +977,4 @@ async function init() {
 }
 
 window.addEventListener("DOMContentLoaded", init);
+
