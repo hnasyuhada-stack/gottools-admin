@@ -124,6 +124,37 @@ function isSuperAdminRole(admin) {
   return String(admin?.role || "").toLowerCase().trim() === "super_admin";
 }
 
+function toDateObj(ts) {
+  if (!ts) return null;
+  if (ts?.toDate) return ts.toDate();
+  if (ts instanceof Date) return ts;
+  if (typeof ts === "number") return new Date(ts);
+  if (typeof ts === "string") {
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+function formatDateTimeAny(ts) {
+  const d = toDateObj(ts);
+  return d ? d.toLocaleString() : "-";
+}
+
+function durationText(u) {
+  const st = String(u?.accountStatus || u?.status || "active").toLowerCase().trim();
+  if (st === "banned") {
+    const until = u?.banUntil;
+    return until ? `Until: ${formatDateTimeAny(until)}` : "Until: Permanent";
+  }
+  if (st === "suspended") {
+    const until = u?.suspendedUntil;
+    return until ? `Until: ${formatDateTimeAny(until)}` : "Until: Further notice";
+  }
+  return "-";
+}
+
+
 /* =========================
    Settings + policy
    ========================= */
@@ -822,3 +853,4 @@ async function init() {
 }
 
 window.addEventListener("DOMContentLoaded", init);
+
