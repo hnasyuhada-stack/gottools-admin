@@ -1,4 +1,4 @@
-// js/users.js (UPDATED: Transactions -> Warnings + better Date Joined fallback)
+// js/users.js (UPDATED: Warnings + duration (suspendedUntil/banUntil) + support email display)
 import { db } from "./firebase-config.js";
 
 import {
@@ -81,12 +81,10 @@ function pickJoined(u) {
   return "-";
 }
 
-
 function warningsCount(u) {
   const val = u?.warningCount ?? u?.warningsCount ?? u?.warning ?? 0;
   return Number(val) || 0;
 }
-
 
 function isSuspended(u) {
   if (u?.accountStatus === "banned") return true;
@@ -124,6 +122,9 @@ function isSuperAdminRole(admin) {
   return String(admin?.role || "").toLowerCase().trim() === "super_admin";
 }
 
+/* =========================
+   Duration helpers
+   ========================= */
 function toDateObj(ts) {
   if (!ts) return null;
   if (ts?.toDate) return ts.toDate();
@@ -154,6 +155,24 @@ function durationText(u) {
   return "-";
 }
 
+function computeUntilFromDuration(durationKey) {
+  const now = new Date();
+  const key = String(durationKey || "indefinite").toLowerCase().trim();
+
+  const daysMap = {
+    "1d": 1,
+    "3d": 3,
+    "7d": 7,
+    "14d": 14,
+    "30d": 30
+  };
+
+  const days = daysMap[key];
+  if (!days) return null; // indefinite
+
+  const ms = days * 24 * 60 * 60 * 1000;
+  return new Date(now.getTime() + ms);
+}
 
 /* =========================
    Settings + policy
@@ -166,11 +185,16 @@ async function loadSettingsSafe() {
     const data = snap.exists() ? (snap.data() || {}) : {};
     return {
       userBanPolicy: data.userBanPolicy || "admins_allowed",
-      auditLogEnabled: !!data.auditLogEnabled
+      auditLogEnabled: !!data.auditLogEnabled,
+      supportEmail: data.supportEmail || "sgottools@gmail.com"
     };
   } catch (e) {
     console.warn("[users] loadSettingsSafe failed:", e);
-    return { userBanPolicy: "admins_allowed", auditLogEnabled: false };
+    return {
+      userBanPolicy: "admins_allowed",
+      auditLogEnabled: false,
+      supportEmail: "sgottools@gmail.com"
+    };
   }
 }
 
@@ -270,6 +294,7 @@ async function applyWarning(userId, admin, settings, { severity = "minor", reaso
     lastWarningAt: serverTimestamp(),
     lastWarningReason: reason || "",
     lastAdminAction: "warn",
+    lastAdminActionAt: serverTimestamp(),
     reputationScore: nextScore,
     badgeLevel: nextBadge,
     updatedAt: serverTimestamp()
@@ -289,7 +314,7 @@ async function applyWarning(userId, admin, settings, { severity = "minor", reaso
   return { nextScore, nextBadge };
 }
 
-async function suspendUser(userId, admin, reason, settings) {
+async function suspendUser(userId, admin, reason, settings, suspendedUntilDate = null) {
   const ref = doc(db, "users", userId);
 
   await updateDoc(ref, {
@@ -299,7 +324,12 @@ async function suspendUser(userId, admin, reason, settings) {
     suspendedAt: serverTimestamp(),
     suspendedBy: admin.uid,
     suspendReason: reason || "Suspended by admin",
+
+    // ✅ NEW
+    suspendedUntil: suspendedUntilDate ? suspendedUntilDate : null,
+
     lastAdminAction: "suspend",
+    lastAdminActionAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
@@ -307,6 +337,7 @@ async function suspendUser(userId, admin, reason, settings) {
     type: "user_suspend",
     target: { userId },
     reason,
+    until: suspendedUntilDate ? suspendedUntilDate.toISOString() : null,
     actor: { uid: admin.uid, name: admin.name || "Admin", role: admin.role || "admin" }
   });
 }
@@ -319,8 +350,10 @@ async function activateUser(userId, admin, settings) {
     status: "active",
     accountStatus: "active",
     suspendedAt: null,
+    suspendedUntil: null,   // ✅ NEW
     suspendReason: "",
     lastAdminAction: "activate",
+    lastAdminActionAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
@@ -341,7 +374,12 @@ async function banUser(userId, admin, settings, reason) {
     bannedAt: serverTimestamp(),
     bannedBy: admin.uid,
     banReason: reason || "Major violation",
+
+    // ✅ optional: keep as permanent unless you add ban duration UI later
+    banUntil: null,
+
     lastAdminAction: "ban",
+    lastAdminActionAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
@@ -361,8 +399,10 @@ async function unbanUser(userId, admin, settings) {
     accountStatus: "active",
     isSuspended: false,
     bannedAt: null,
+    banUntil: null,        // ✅ NEW
     banReason: "",
     lastAdminAction: "unban",
+    lastAdminActionAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
 
@@ -372,7 +412,6 @@ async function unbanUser(userId, admin, settings) {
     actor: { uid: admin.uid, name: admin.name || "Admin", role: admin.role || "admin" }
   });
 }
-
 
 function renderUsersTable(users, admin, settings) {
   const tbody = document.getElementById("usersTbody");
@@ -386,31 +425,40 @@ function renderUsersTable(users, admin, settings) {
     `;
     return;
   }
+
   const usersById = new Map();
   users.forEach(u => usersById.set(u.id, u));
+
   const allowModeration = canModerateUsers(admin, settings);
+
   tbody.innerHTML = users.map((u) => {
     const suspended = isSuspended(u);
     const banned = isBanned(u);
+
     const statusBadge = banned
       ? `<span class="badge badge-danger">Banned</span>`
       : suspended
         ? `<span class="badge badge-warn">Suspended</span>`
         : `<span class="badge badge-ok">Active</span>`;
+
     const badge = badgeLabel(u?.badgeLevel);
-const w = warningsCount(u);
-const warningsBadge =
-  w > 0 ? `<span class="badge badge-warn">${escapeHtml(w)}</span>`
-        : `<span class="badge badge-muted">0</span>`;
+
+    const w = warningsCount(u);
+    const warningsBadge =
+      w > 0 ? `<span class="badge badge-warn">${escapeHtml(w)}</span>`
+            : `<span class="badge badge-muted">0</span>`;
+
     const btnWarn = `<button class="btn-table" data-action="warn" data-id="${u.id}" ${allowModeration ? "" : "disabled"}>Warn</button>`;
     const btnSuspend = `<button class="btn-table" data-action="suspend" data-id="${u.id}" ${allowModeration ? "" : "disabled"}>Suspend</button>`;
     const btnActivate = `<button class="btn-table" data-action="activate" data-id="${u.id}" ${allowModeration ? "" : "disabled"}>Activate</button>`;
     const btnBan = `<button class="btn-table" data-action="ban" data-id="${u.id}" ${allowModeration ? "" : "disabled"}>Ban</button>`;
     const btnUnban = `<button class="btn-table" data-action="unban" data-id="${u.id}" ${allowModeration ? "" : "disabled"}>Unban</button>`;
+
     let actionSet = "";
     if (banned) actionSet = `${btnUnban}`;
     else if (suspended) actionSet = `${btnActivate} ${btnBan}`;
     else actionSet = `${btnWarn} ${btnSuspend} ${btnBan}`;
+
     return `
       <tr>
         <td>
@@ -431,19 +479,29 @@ const warningsBadge =
       </tr>
     `;
   }).join("");
+
   const showUserDetails = async (u) => {
     let fresh = u;
     try {
       const snap = await getDoc(doc(db, "users", u.id));
       if (snap.exists()) fresh = { id: u.id, ...snap.data() };
     } catch (_) {}
+
+    const supportEmail = (settings?.supportEmail || window.GT_SETTINGS?.supportEmail || "sgottools@gmail.com");
+
     const body = `
       <div class="gt-grid">
         <div class="gt-field"><div class="k">Name</div><div class="v">${escapeHtml(pickName(fresh))}</div></div>
         <div class="gt-field"><div class="k">Email</div><div class="v">${escapeHtml(pickEmail(fresh))}</div></div>
         <div class="gt-field"><div class="k">User UID</div><div class="v">${escapeHtml(fresh.id)}</div></div>
         <div class="gt-field"><div class="k">Role</div><div class="v">${escapeHtml(userRoleLabel(fresh))}</div></div>
+
         <div class="gt-field"><div class="k">Status</div><div class="v">${escapeHtml(statusText(fresh))}</div></div>
+        <div class="gt-field"><div class="k">Duration</div><div class="v">${escapeHtml(durationText(fresh))}</div></div>
+
+        <div class="gt-field"><div class="k">Action At</div><div class="v">${escapeHtml(formatDate(fresh.lastAdminActionAt || fresh.suspendedAt || fresh.bannedAt))}</div></div>
+        <div class="gt-field"><div class="k">Support Email</div><div class="v">${escapeHtml(supportEmail)}</div></div>
+
         <div class="gt-field"><div class="k">Joined</div><div class="v">${escapeHtml(pickJoined(fresh))}</div></div>
         <div class="gt-field"><div class="k">Badge</div><div class="v">${escapeHtml(badgeLabel(fresh.badgeLevel))}</div></div>
         <div class="gt-field"><div class="k">Reputation</div><div class="v">${escapeHtml(fresh.reputationScore ?? 100)}</div></div>
@@ -579,6 +637,19 @@ const warningsBadge =
 
         <div class="gt-form">
           <div>
+            <div class="gt-label">Suspend duration</div>
+            <select class="gt-select" id="gtSuspendDuration">
+              <option value="indefinite">Until further notice</option>
+              <option value="1d">1 day</option>
+              <option value="3d">3 days</option>
+              <option value="7d">7 days</option>
+              <option value="14d">14 days</option>
+              <option value="30d">30 days</option>
+            </select>
+            <div class="gt-hint">Choose how long the account is suspended.</div>
+          </div>
+
+          <div>
             <div class="gt-label">Reason (optional)</div>
             <textarea class="gt-textarea" id="gtSuspendReason" placeholder="Explain why this user is suspended..."></textarea>
             <div class="gt-hint">Tip: include report ID or short evidence note.</div>
@@ -595,8 +666,11 @@ const warningsBadge =
 
     $("gtSuspendConfirm").addEventListener("click", async () => {
       const reason = String($("gtSuspendReason").value || "").trim();
+      const durationKey = String($("gtSuspendDuration").value || "indefinite");
+      const untilDate = computeUntilFromDuration(durationKey);
+
       try {
-        await suspendUser(u.id, admin, reason, settings);
+        await suspendUser(u.id, admin, reason, settings, untilDate);
         window.location.reload();
       } catch (err) {
         console.error("[users] suspend failed:", err);
@@ -853,4 +927,3 @@ async function init() {
 }
 
 window.addEventListener("DOMContentLoaded", init);
-
