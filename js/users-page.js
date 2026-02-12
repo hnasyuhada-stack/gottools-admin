@@ -69,21 +69,25 @@ async function ensureSettingsDocExistsSafe(isSuperAdmin) {
 
   if (!isSuperAdmin) return {};
 
-  const defaults = {
-    maintenanceMode: "disabled",
-    reportResolvePolicy: "admins_allowed",
-    reportAssignmentEnabled: true,
+const defaults = {
+  maintenanceMode: "disabled",
+  reportResolvePolicy: "admins_allowed",
+  reportAssignmentEnabled: true,
 
-    toolAutoApprove: true,
-    maxImagesPerListing: 6,
-    allowedListingTypes: { rent: true, swap: true, free: true, sell: true },
+  toolAutoApprove: true,
+  maxImagesPerListing: 6,
+  allowedListingTypes: { rent: true, swap: true, free: true, sell: true },
 
-    userBanPolicy: "super_admin_only",
-    auditLogEnabled: true,
+  userBanPolicy: "super_admin_only",
+  auditLogEnabled: true,
 
-    updatedAt: serverTimestamp(),
-    updatedBy: null
-  };
+  // ✅ NEW
+  supportEmail: "sgottools@gmail.com",
+
+  updatedAt: serverTimestamp(),
+  updatedBy: null
+};
+
 
   try {
     await setDoc(SETTINGS_REF, defaults, { merge: true });
@@ -131,3 +135,4 @@ window.addEventListener("DOMContentLoaded", async () => {
     window.location.href = "login.html";
   }
 });
+
