@@ -62,22 +62,12 @@ function pickEmail(u) {
 function pickJoined(u) {
   const t = u?.createdAt || u?.joinedAt;
 
-  // Firestore Timestamp
-  if (t?.toDate) {
-    return t.toDate().toLocaleDateString();
-  }
-
-  // Milliseconds number (System.currentTimeMillis)
-  if (typeof t === "number") {
-    return new Date(t).toLocaleDateString();
-  }
-
-  // ISO string (if ever)
+  if (t?.toDate) return t.toDate().toLocaleDateString();
+  if (typeof t === "number") return new Date(t).toLocaleDateString();
   if (typeof t === "string") {
     const d = new Date(t);
     return isNaN(d.getTime()) ? "-" : d.toLocaleDateString();
   }
-
   return "-";
 }
 
@@ -159,16 +149,9 @@ function computeUntilFromDuration(durationKey) {
   const now = new Date();
   const key = String(durationKey || "indefinite").toLowerCase().trim();
 
-  const daysMap = {
-    "1d": 1,
-    "3d": 3,
-    "7d": 7,
-    "14d": 14,
-    "30d": 30
-  };
-
+  const daysMap = { "1d": 1, "3d": 3, "7d": 7, "14d": 14, "30d": 30 };
   const days = daysMap[key];
-  if (!days) return null; // indefinite
+  if (!days) return null;
 
   const ms = days * 24 * 60 * 60 * 1000;
   return new Date(now.getTime() + ms);
@@ -178,7 +161,6 @@ function computeUntilFromDuration(durationKey) {
    Settings + policy
    ========================= */
 async function loadSettingsSafe() {
-  // users-page.js might have put settings here
   if (window.GT_SETTINGS) return window.GT_SETTINGS;
 
   try {
@@ -272,7 +254,6 @@ function openModal({ title, sub, bodyHtml, footerHtml }){
   b.setAttribute("aria-hidden", "false");
   b.removeAttribute("inert");
 
-  // focus first button to avoid aria-hidden warning
   const firstBtn = b.querySelector("button");
   if (firstBtn) firstBtn.focus();
 }
@@ -281,18 +262,13 @@ function closeModal(){
   const b = $("gtModalBackdrop");
   if (!b) return;
 
-  // blur if focus is inside modal before hiding
-  if (b.contains(document.activeElement)) {
-    document.activeElement.blur();
-  }
+  if (b.contains(document.activeElement)) document.activeElement.blur();
 
   b.classList.remove("show");
   b.setAttribute("aria-hidden", "true");
   b.setAttribute("inert", "");
 
-  if (GT_LAST_FOCUS?.focus) {
-    GT_LAST_FOCUS.focus();
-  }
+  if (GT_LAST_FOCUS?.focus) GT_LAST_FOCUS.focus();
   GT_LAST_FOCUS = null;
 }
 
@@ -316,9 +292,11 @@ async function applyWarning(userId, admin, settings, { severity = "minor", reaso
     warningCount: prevWarnings + 1,
     lastWarningAt: serverTimestamp(),
     lastWarningReason: reason || "",
+
     lastAdminAction: "warn",
     lastAdminActionAt: serverTimestamp(),
-    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
+    lastAdminActionBy: admin.uid,
+
     reputationScore: nextScore,
     badgeLevel: nextBadge,
     updatedAt: serverTimestamp()
@@ -356,11 +334,11 @@ async function suspendUser(userId, admin, reason, settings, suspendedUntilDate =
     suspendedAt: serverTimestamp(),
     suspendedBy: admin.uid,
     suspendReason: reason || "Suspended by admin",
-    suspendedUntil: suspendedUntilDate ? suspendedUntilDate : null, // ✅ duration support
+    suspendedUntil: suspendedUntilDate ? suspendedUntilDate : null,
 
     lastAdminAction: "suspend",
     lastAdminActionAt: serverTimestamp(),
-    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
+    lastAdminActionBy: admin.uid,
     updatedAt: serverTimestamp()
   });
 
@@ -376,25 +354,21 @@ async function suspendUser(userId, admin, reason, settings, suspendedUntilDate =
 async function activateUser(userId, admin, settings) {
   const ref = doc(db, "users", userId);
 
+  // ✅ IMPORTANT: DO NOT set suspendedBy/bannedBy to null (rules will reject)
   await updateDoc(ref, {
-    // restore account
     isSuspended: false,
     status: "active",
     accountStatus: "active",
 
-    // clear suspension info
     suspendedAt: null,
     suspendedUntil: null,
-    suspendedBy: null,
     suspendReason: "",
 
-    // OPTIONAL: clear ban info too if you treat Activate as “restore”
+    // optional: clear ban info (without touching bannedBy)
     bannedAt: null,
     banUntil: null,
-    bannedBy: null,
     banReason: "",
 
-    // stamping (REQUIRED)
     lastAdminAction: "activate",
     lastAdminActionAt: serverTimestamp(),
     lastAdminActionBy: admin.uid,
@@ -408,7 +382,6 @@ async function activateUser(userId, admin, settings) {
   });
 }
 
-
 async function banUser(userId, admin, settings, reason) {
   const ref = doc(db, "users", userId);
 
@@ -419,11 +392,11 @@ async function banUser(userId, admin, settings, reason) {
     bannedAt: serverTimestamp(),
     bannedBy: admin.uid,
     banReason: reason || "Major violation",
-    banUntil: null, // (keep permanent unless you add duration UI)
+    banUntil: null,
 
     lastAdminAction: "ban",
     lastAdminActionAt: serverTimestamp(),
-    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
+    lastAdminActionBy: admin.uid,
     updatedAt: serverTimestamp()
   });
 
@@ -448,7 +421,7 @@ async function unbanUser(userId, admin, settings) {
 
     lastAdminAction: "unban",
     lastAdminActionAt: serverTimestamp(),
-    lastAdminActionBy: admin.uid,   // ✅ REQUIRED BY RULES
+    lastAdminActionBy: admin.uid,
     updatedAt: serverTimestamp()
   });
 
@@ -977,4 +950,3 @@ async function init() {
 }
 
 window.addEventListener("DOMContentLoaded", init);
-
