@@ -58,37 +58,39 @@ function wireLogoutOnce() {
 }
 
 async function ensureSettingsDocExistsSafe(isSuperAdmin) {
-  // ✅ If not super admin, do NOT create settings doc (rules may block)
+  // Defaults (only Super Admin should be able to create this doc)
+  const defaults = {
+    maintenanceMode: "disabled",
+    reportResolvePolicy: "admins_allowed",
+    reportAssignmentEnabled: true,
+
+    toolAutoApprove: true,
+    maxImagesPerListing: 6,
+    allowedListingTypes: { rent: true, swap: true, free: true, sell: true },
+
+    userBanPolicy: "super_admin_only",
+    auditLogEnabled: true,
+
+    // ✅ NEW
+    supportEmail: "sgottools@gmail.com",
+
+    updatedAt: serverTimestamp(),
+    updatedBy: null
+  };
+
+  // 1) Try read settings
   try {
     const snap = await getDoc(SETTINGS_REF);
     if (snap.exists()) return snap.data() || {};
   } catch (e) {
     console.warn("[users-page] get settings failed (non-blocking):", e);
-    return {};
+    // Don't return yet — if Super Admin, we can still try to create defaults below
   }
 
+  // 2) If not Super Admin, do NOT create settings doc (rules may block)
   if (!isSuperAdmin) return {};
 
-const defaults = {
-  maintenanceMode: "disabled",
-  reportResolvePolicy: "admins_allowed",
-  reportAssignmentEnabled: true,
-
-  toolAutoApprove: true,
-  maxImagesPerListing: 6,
-  allowedListingTypes: { rent: true, swap: true, free: true, sell: true },
-
-  userBanPolicy: "super_admin_only",
-  auditLogEnabled: true,
-
-  // ✅ NEW
-  supportEmail: "sgottools@gmail.com",
-
-  updatedAt: serverTimestamp(),
-  updatedBy: null
-};
-
-
+  // 3) Super Admin: create/merge defaults
   try {
     await setDoc(SETTINGS_REF, defaults, { merge: true });
     return defaults;
@@ -135,4 +137,3 @@ window.addEventListener("DOMContentLoaded", async () => {
     window.location.href = "login.html";
   }
 });
-
