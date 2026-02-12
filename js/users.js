@@ -151,7 +151,7 @@ function computeUntilFromDuration(durationKey) {
 
   const daysMap = { "1d": 1, "3d": 3, "7d": 7, "14d": 14, "30d": 30 };
   const days = daysMap[key];
-  if (!days) return null;
+  if (!days) return null; // indefinite
 
   const ms = days * 24 * 60 * 60 * 1000;
   return new Date(now.getTime() + ms);
@@ -188,14 +188,9 @@ function canModerateUsers(admin, settings) {
 }
 
 async function writeAuditIfEnabled(settings, payload) {
-  const enabled = !!settings?.auditLogEnabled;
-  if (!enabled) return;
-
+  if (!settings?.auditLogEnabled) return;
   try {
-    await addDoc(AUDIT_COL, {
-      ...payload,
-      createdAt: serverTimestamp()
-    });
+    await addDoc(AUDIT_COL, { ...payload, createdAt: serverTimestamp() });
   } catch (e) {
     console.warn("[users] audit log write failed (non-blocking):", e);
   }
@@ -262,7 +257,9 @@ function closeModal(){
   const b = $("gtModalBackdrop");
   if (!b) return;
 
-  if (b.contains(document.activeElement)) document.activeElement.blur();
+  if (b.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
 
   b.classList.remove("show");
   b.setAttribute("aria-hidden", "true");
@@ -293,6 +290,7 @@ async function applyWarning(userId, admin, settings, { severity = "minor", reaso
     lastWarningAt: serverTimestamp(),
     lastWarningReason: reason || "",
 
+    // stamping (REQUIRED when core fields change)
     lastAdminAction: "warn",
     lastAdminActionAt: serverTimestamp(),
     lastAdminActionBy: admin.uid,
@@ -307,16 +305,8 @@ async function applyWarning(userId, admin, settings, { severity = "minor", reaso
     target: { userId },
     severity,
     penalty,
-    before: {
-      warningCount: prevWarnings,
-      reputationScore: prevScore,
-      badgeLevel: cur.badgeLevel || "bronze"
-    },
-    after: {
-      warningCount: prevWarnings + 1,
-      reputationScore: nextScore,
-      badgeLevel: nextBadge
-    },
+    before: { warningCount: prevWarnings, reputationScore: prevScore, badgeLevel: cur.badgeLevel || "bronze" },
+    after: { warningCount: prevWarnings + 1, reputationScore: nextScore, badgeLevel: nextBadge },
     reason,
     actor: { uid: admin.uid, name: admin.name || "Admin", role: admin.role || "admin" }
   });
@@ -354,7 +344,9 @@ async function suspendUser(userId, admin, reason, settings, suspendedUntilDate =
 async function activateUser(userId, admin, settings) {
   const ref = doc(db, "users", userId);
 
-  // ✅ IMPORTANT: DO NOT set suspendedBy/bannedBy to null (rules will reject)
+  // ✅ IMPORTANT:
+  // DO NOT set suspendedBy / bannedBy to null.
+  // Your rules will reject if those fields are changed and not equal uid().
   await updateDoc(ref, {
     isSuspended: false,
     status: "active",
@@ -364,7 +356,7 @@ async function activateUser(userId, admin, settings) {
     suspendedUntil: null,
     suspendReason: "",
 
-    // optional: clear ban info (without touching bannedBy)
+    // optional: clear ban info WITHOUT touching bannedBy
     bannedAt: null,
     banUntil: null,
     banReason: "",
