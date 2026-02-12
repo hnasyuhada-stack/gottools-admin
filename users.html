@@ -1,4 +1,4 @@
-<!-- users.html (UPDATED: Transactions -> Warnings) -->
+<!-- users.html (UPDATED to match NEW users.js features: suspend duration + status duration display ready) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -432,7 +432,7 @@
               <th>User</th>
               <th>Email</th>
               <th>Date Joined</th>
-              <th>Warnings</th> <!-- ✅ UPDATED -->
+              <th>Warnings</th>
               <th>Status</th>
               <th>Role</th>
               <th>Actions</th>
@@ -469,23 +469,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const notifBtn = document.querySelector(".notification");
-    const notifPanel = document.getElementById("notificationPanel");
-
-    if (notifBtn && notifPanel) {
-      notifBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        notifPanel.style.display =
-          notifPanel.style.display === "block" ? "none" : "block";
-      });
-
-      document.addEventListener("click", (e) => {
-        if (!notifPanel.contains(e.target) && !notifBtn.contains(e.target)) {
-          notifPanel.style.display = "none";
-        }
-      });
-    }
-
+    // sidebar active state
     const currentPage = location.pathname.split("/").pop().split("?")[0];
     document.querySelectorAll(".sidebar-link").forEach(link => {
       if (link.getAttribute("href") === currentPage) link.classList.add("active");
@@ -493,9 +477,8 @@
   });
 </script>
 
-<script type="module" src="./js/users-page.js?v=20260123_1"></script>
-<script type="module" src="./js/users.js?v=20260123_1"></script>
-
+<script type="module" src="./js/users-page.js?v=20260123_2"></script>
+<script type="module" src="./js/users.js?v=20260123_2"></script>
 
 </body>
 </html>
