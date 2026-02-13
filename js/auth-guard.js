@@ -65,7 +65,7 @@ function isOnLoginPage() {
 /**
  * Force logout + redirect (fail-closed)
  * - keepError: keep/overwrite LS_ERROR for login page
- * - ✅ redirect lock to prevent multiple pages/scripts from looping
+ * - redirect lock to prevent multiple pages/scripts from looping
  */
 async function forceLogoutAndRedirect(message = "") {
   if (_redirecting) return;
@@ -86,7 +86,7 @@ async function forceLogoutAndRedirect(message = "") {
     // Best-effort signout (ignore failures)
     try { await signOut(auth); } catch (_) {}
 
-    window.location.replace("login.html");
+    window.location.replace("index.html");
   } finally {
     // Keep redirect lock true; we don't want any follow-up redirects racing.
   }
@@ -129,22 +129,22 @@ async function fetchAndValidateAdmin(user, allowedRoles) {
 
   const admin = { uid: user.uid, email, role, active, name };
 
-  // ✅ Standardized session
+  // Standardized session
   localStorage.setItem(LS_UID, admin.uid);
   localStorage.setItem(LS_ROLE, admin.role);
   localStorage.setItem(LS_EMAIL, admin.email);
 
-  // ✅ Cache for UI / faster init
+  // Cache for UI / faster init
   localStorage.setItem(LS_CACHE, JSON.stringify({ ...admin, cachedAt: Date.now() }));
 
   return admin;
 }
 
 /**
- * ✅ Standard guard that RETURNS admin object (Promise)
+ * Standard guard that RETURNS admin object (Promise)
  * - Fail closed: redirects to login.html
  * - Handles "first auth event null" during session restore
- * - ✅ Memoized per role-set to avoid double redirects
+ * - Memoized per role-set to avoid double redirects
  */
 export function requireAccess(options = {}) {
   const allowedRoles = (options.allowedRoles || ["admin", "super_admin"]).map(normalizeRole);
@@ -166,7 +166,7 @@ export function requireAccess(options = {}) {
 
       resolve(adminOrNull || null);
 
-      // ✅ allow future guards to run again
+      // allow future guards to run again
       _guardPromises.delete(key);
     };
 
@@ -224,3 +224,4 @@ export function getCachedAdmin() {
     return null;
   }
 }
+
