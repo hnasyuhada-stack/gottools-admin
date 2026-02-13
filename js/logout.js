@@ -1,6 +1,7 @@
 // js/logout.js
 import { auth } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { loginUrl } from "./paths.js";
 
 function clearSession() {
   localStorage.removeItem("gt_admin_uid");
@@ -16,7 +17,6 @@ export async function logout() {
     // ignore
   } finally {
     clearSession();
-    window.location.replace("index.html");
+    window.location.replace(loginUrl()); 
   }
 }
-
