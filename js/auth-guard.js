@@ -59,7 +59,7 @@ function prettyNameFromEmail(email) {
 
 function isOnLoginPage() {
   const p = (location.pathname || "").split("/").pop();
-  return p === "login.html" || p === "" || p == null;
+  return p === "index.html" || p === "" || p == null;
 }
 
 /**
@@ -224,4 +224,5 @@ export function getCachedAdmin() {
     return null;
   }
 }
+
 
