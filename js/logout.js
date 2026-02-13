@@ -16,6 +16,7 @@ export async function logout() {
     // ignore
   } finally {
     clearSession();
-    window.location.replace("login.html");
+    window.location.replace("index.html");
   }
 }
+
