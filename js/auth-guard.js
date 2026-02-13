@@ -2,6 +2,7 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { loginUrl } from "./paths.js";
 
 /* =========================
    STORAGE KEYS (STANDARD)
@@ -62,6 +63,7 @@ function isOnLoginPage() {
   return p === "index.html" || p === "" || p == null;
 }
 
+
 /**
  * Force logout + redirect (fail-closed)
  * - keepError: keep/overwrite LS_ERROR for login page
@@ -72,24 +74,18 @@ async function forceLogoutAndRedirect(message = "") {
   _redirecting = true;
 
   try {
-    // Always clear session immediately so other scripts can't reuse stale cache
     clearSession({ keepError: true });
-
     if (message) localStorage.setItem(LS_ERROR, message);
 
-    // If already on login page, don’t spam signOut/redirect
     if (isOnLoginPage()) {
       try { await signOut(auth); } catch (_) {}
       return;
     }
 
-    // Best-effort signout (ignore failures)
     try { await signOut(auth); } catch (_) {}
 
-    window.location.replace("index.html");
-  } finally {
-    // Keep redirect lock true; we don't want any follow-up redirects racing.
-  }
+    window.location.replace(loginUrl()); 
+  } finally {}
 }
 
 async function fetchAndValidateAdmin(user, allowedRoles) {
@@ -224,5 +220,6 @@ export function getCachedAdmin() {
     return null;
   }
 }
+
 
 
